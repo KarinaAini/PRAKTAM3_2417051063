@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,11 +14,22 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -25,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import model.SosialSource
 import model.Sosial
 import com.example.praktam3_2417051063.ui.theme.PRAKTAM3_2417051063Theme
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,54 +51,77 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+
 @Composable
 fun SosialScreen() {
     androidx.compose.material3.Surface(
-        color = androidx.compose.ui.graphics.Color(0xFFFFF5E1)
+        color = Color(0xFFFFF5E1)
     ) {
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(top = 40.dp, start = 20.dp, end = 20.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+
             Text(
                 text = "Trouver des amis",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 fontFamily = androidx.compose.ui.text.font.FontFamily.Serif
             )
+
             Spacer(modifier = Modifier.height(10.dp))
 
             SosialSource.dummySosial.forEach { sosial ->
                 DetailScreen(sosial = sosial)
                 Spacer(modifier = Modifier.height(8.dp))
             }
-
         }
     }
 }
 
+
 @Composable
 fun DetailScreen(sosial: Sosial) {
+    var isFavorite by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(12.dp)
     ) {
 
-        androidx.compose.material3.Card(
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-        ) {
-            Image(
-                painter = painterResource(id = sosial.imageRes),
-                contentDescription = sosial.nama,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            androidx.compose.material3.Card(
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+            ) {
+
+                Image(
+                    painter = painterResource(id = sosial.imageRes),
+                    contentDescription = sosial.nama,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
+            IconButton(
+                onClick = { isFavorite = !isFavorite },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+            ) {
+
+                Icon(
+                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                    contentDescription = "Favorite Icon",
+                    tint = if (isFavorite) Color.Red else Color.White
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -122,9 +158,11 @@ fun DetailScreen(sosial: Sosial) {
             onClick = { },
             modifier = Modifier.fillMaxWidth(),
             colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                containerColor = androidx.compose.ui.graphics.Color(0xFF355E3B)
+                containerColor = Color(0xFF355E3B)
             )
+
         ) {
+
             Text(
                 text = "Cari Teman Kelompok",
                 fontWeight = FontWeight.Bold
@@ -132,4 +170,3 @@ fun DetailScreen(sosial: Sosial) {
         }
     }
 }
-
