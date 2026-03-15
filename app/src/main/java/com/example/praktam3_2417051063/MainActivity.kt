@@ -85,44 +85,12 @@ fun SosialScreen() {
 
 @Composable
 fun DetailScreen(sosial: Sosial) {
-    var isFavorite by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(12.dp)
     ) {
-
-        Box(modifier = Modifier.fillMaxWidth()) {
-            androidx.compose.material3.Card(
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-            ) {
-
-                Image(
-                    painter = painterResource(id = sosial.imageRes),
-                    contentDescription = sosial.nama,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            }
-
-            IconButton(
-                onClick = { isFavorite = !isFavorite },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-            ) {
-
-                Icon(
-                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                    contentDescription = "Favorite Icon",
-                    tint = if (isFavorite) Color.Red else Color.White
-                )
-            }
-        }
 
         Spacer(modifier = Modifier.height(4.dp))
 
