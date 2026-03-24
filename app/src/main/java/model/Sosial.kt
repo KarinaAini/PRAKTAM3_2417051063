@@ -1,4 +1,5 @@
 package model
+
 import androidx.annotation.DrawableRes
 
 data class Sosial(
