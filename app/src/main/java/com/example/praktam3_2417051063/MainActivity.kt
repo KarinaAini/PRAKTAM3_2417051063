@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun SosialScreen() {
-    Surface(color = Color(0xFFFFF5E1)) {
+    Surface(color = MaterialTheme.colorScheme.background) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -61,12 +61,12 @@ fun SosialScreen() {
             contentPadding = PaddingValues(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+
             item {
                 Text(
                     text = "Trouver des amis",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Serif
+                    color = MaterialTheme.colorScheme.primary
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -84,8 +84,7 @@ fun SosialScreen() {
                 Text(
                     text = "Daftar Teman Kelompok",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Serif
+                    color = MaterialTheme.colorScheme.secondary
                 )
             }
 
@@ -101,6 +100,9 @@ fun SosialRowItem(sosial: Sosial) {
     Card(
         modifier = Modifier.width(160.dp),
         shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column {
@@ -113,17 +115,18 @@ fun SosialRowItem(sosial: Sosial) {
                 contentScale = ContentScale.Crop
             )
 
+
             Column(modifier = Modifier.padding(8.dp)) {
                 Text(
                     text = sosial.nama,
                     style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Text(
                     text = "Aktif",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF355E3B)
+                    color = MaterialTheme.colorScheme.secondary
                 )
             }
         }
@@ -137,6 +140,9 @@ fun DetailScreen(sosial: Sosial) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
         elevation = CardDefaults.cardElevation(6.dp)
     ) {
         Column {
@@ -165,18 +171,19 @@ fun DetailScreen(sosial: Sosial) {
             }
 
             Column(modifier = Modifier.padding(16.dp)) {
+
                 Text(
                     text = sosial.nama,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Serif
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
                     text = sosial.deskripsi,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -184,6 +191,7 @@ fun DetailScreen(sosial: Sosial) {
                 Text(
                     text = "Teman: ${sosial.teman}",
                     style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -193,12 +201,13 @@ fun DetailScreen(sosial: Sosial) {
                     onClick = { },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF355E3B)
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
                     Text(
                         text = "Cari Teman Kelompok",
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.labelLarge
                     )
                 }
             }
