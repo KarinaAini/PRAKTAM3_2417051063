@@ -1,10 +1,17 @@
 package model
 
 import androidx.annotation.DrawableRes
-
-data class Sosial(
+import com.google.gson.annotations.SerializedName
+data class Sosial (
+    @SerializedName("nama")
     val nama: String,
+
+    @SerializedName("deskripsi")
     val deskripsi: String,
+
+    @SerializedName("teman")
     val teman: Int,
-    @DrawableRes val imageRes: Int
+
+    @SerializedName("image_name")
+    val imageName: String
 )

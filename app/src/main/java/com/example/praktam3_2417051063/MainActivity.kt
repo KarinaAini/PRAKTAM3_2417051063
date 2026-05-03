@@ -1,63 +1,44 @@
 package com.example.praktam3_2417051063
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.navigation.NavController
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.praktam3_2417051063.ui.theme.PRAKTAM3_2417051063Theme
-import model.Sosial
-import model.SosialSource
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.compositionLocalOf
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.CircleShape
+import coil.compose.AsyncImage
+import com.example.praktam3_2417051063.network.RetrofitClient
+import com.example.praktam3_2417051063.ui.theme.PRAKTAM3_2417051063Theme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import model.Sosial
 
 val LocalNavController = compositionLocalOf<NavController> { error("No NavController") }
 val LocalIsFullscreen = compositionLocalOf<Boolean> { false }
@@ -67,29 +48,43 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val navController = rememberNavController()
             PRAKTAM3_2417051063Theme {
-                NavHost(navController = navController, startDestination = "home") {
-                    composable("home") {
-                        CompositionLocalProvider(
-                            LocalNavController provides navController,
-                            LocalIsFullscreen provides false
-                        ) {
-                            SosialScreen()
+                AppNavigation()
+            }
+        }
+    }
+}
+
+@Composable
+fun AppNavigation() {
+    val navController = rememberNavController()
+    var sosials by remember { mutableStateOf<List<Sosial>>(emptyList()) }
+
+    CompositionLocalProvider(LocalNavController provides navController) {
+        NavHost(navController = navController, startDestination = "home") {
+            composable("home") {
+                CompositionLocalProvider(LocalIsFullscreen provides false) {
+                    SosialScreen(
+                        sosialList = sosials,
+                        onDataLoaded = { fetchedData ->
+                            sosials = fetchedData
                         }
-                    }
-                    composable("detail/{nama}") { backStackEntry ->
-                        val nama = backStackEntry.arguments?.getString("nama")
-                        val sosial = SosialSource.dummySosial.find { it.nama == nama }
-                        if (sosial != null) {
-                            CompositionLocalProvider(
-                                LocalNavController provides navController,
-                                LocalIsFullscreen provides true
-                            ) {
-                                Surface(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-                                    DetailScreen(sosial)
-                                }
-                            }
+                    )
+                }
+            }
+
+            composable("detail/{nama}") { backStackEntry ->
+                val nama = backStackEntry.arguments?.getString("nama")
+                val sosial = sosials.find { it.nama == nama }
+
+                sosial?.let {
+                    CompositionLocalProvider(LocalIsFullscreen provides true) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .statusBarsPadding()
+                        ) {
+                            DetailScreen(it)
                         }
                     }
                 }
@@ -99,44 +94,133 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun SosialScreen() {
+fun SosialScreen(
+    sosialList: List<Sosial>,
+    onDataLoaded: (List<Sosial>) -> Unit
+) {
+    var isLoading by remember { mutableStateOf(sosialList.isEmpty()) }
+    var isError by remember { mutableStateOf(false) }
+    var errorDetail by remember { mutableStateOf("") }
+    var retryTrigger by remember { mutableStateOf(0) }
+
+    LaunchedEffect(retryTrigger) {
+        if (sosialList.isEmpty() || retryTrigger > 0) {
+            try {
+                val data = RetrofitClient.instance.getSosial()
+                Log.d("API_RESULT", "Data = $data")
+                Log.d("API_SIZE", "Jumlah = ${data.size}")
+                onDataLoaded(data)
+                isLoading = false
+                isError = false
+            } catch (e: Exception) {
+                isLoading = false
+                isError = true
+                errorDetail = e.localizedMessage ?: e.toString()
+                Log.e("API_ERROR", "Detail Error", e)
+            }
+        }
+    }
+
     Surface(color = MaterialTheme.colorScheme.background) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding(),
-            contentPadding = PaddingValues(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-
-            item {
-                Text(
-                    text = "Trouver des amis",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+        when {
+            isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    items(SosialSource.dummySosial) { sosial ->
-                        SosialRowItem(sosial)
-                    }
+                    CircularProgressIndicator()
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text(
-                    text = "Daftar Teman Kelompok",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.secondary
-                )
             }
 
-            items(SosialSource.dummySosial) { sosial ->
-                DetailScreen(sosial)
+            isError -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "Gagal Memuat Data",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = errorDetail,
+                            textAlign = TextAlign.Center,
+                            color = Color.Gray
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            onClick = {
+                                isLoading = true
+                                isError = false
+                                retryTrigger++
+                            }
+                        ) {
+                            Text("Coba Lagi")
+                        }
+                    }
+                }
+            }
+
+            else -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding(),
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    item {
+                        Column(
+                            modifier = Modifier.padding(
+                                horizontal = 20.dp,
+                                vertical = 10.dp
+                            )
+                        ) {
+                            Text(
+                                "Rekomendasi Teman",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(sosialList) { sosial ->
+                                    SosialRowItem(sosial)
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        Text(
+                            "Daftar Teman Lengkap",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(
+                                horizontal = 20.dp,
+                                vertical = 8.dp
+                            )
+                        )
+                    }
+
+                    items(sosialList) { sosial ->
+                        Box(modifier = Modifier.padding(horizontal = 20.dp)) {
+                            DetailScreen(sosial)
+                        }
+                    }
+                }
             }
         }
     }
@@ -145,20 +229,22 @@ fun SosialScreen() {
 @Composable
 fun SosialRowItem(sosial: Sosial) {
     val navController = LocalNavController.current
+
     Card(
         modifier = Modifier
             .width(160.dp)
-            .clickable { navController.navigate("detail/${sosial.nama}") },
+            .clickable {
+                navController.navigate("detail/${sosial.nama}")
+            },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column {
-            Image(
-                painter = painterResource(id = sosial.imageRes),
+            AsyncImage(
+                model = getDrawableRes(sosial.imageName),
                 contentDescription = sosial.nama,
+                placeholder = painterResource(id = R.drawable.belajar),
+                error = painterResource(id = R.drawable.bareng),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(100.dp),
@@ -169,13 +255,13 @@ fun SosialRowItem(sosial: Sosial) {
                 Text(
                     text = sosial.nama,
                     style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface
+                    fontWeight = FontWeight.Bold
                 )
 
                 Text(
                     text = "Aktif",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary
+                    color = Color.Gray
                 )
             }
         }
@@ -188,27 +274,36 @@ fun DetailScreen(sosial: Sosial) {
     val isFullscreen = LocalIsFullscreen.current
 
     var isFavorite by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(value = false) }
-    val coroutineScope = rememberCoroutineScope ()
+    var isAddingFriend by remember { mutableStateOf(false) }
+
+    val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    Box(modifier = if (isFullscreen) Modifier.fillMaxSize() else Modifier.fillMaxWidth()) {
+    Box(
+        modifier = if (isFullscreen) Modifier.fillMaxSize()
+        else Modifier.fillMaxWidth()
+    ) {
         Column(
-            modifier = if (isFullscreen) Modifier.fillMaxSize().verticalScroll(rememberScrollState()) else Modifier.fillMaxWidth()
+            modifier = if (isFullscreen) {
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            } else {
+                Modifier.fillMaxWidth()
+            }
         ) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
                 elevation = CardDefaults.cardElevation(6.dp)
             ) {
                 Column {
                     Box {
-                        Image(
-                            painter = painterResource(id = sosial.imageRes),
+                        AsyncImage(
+                            model = getDrawableRes(sosial.imageName),
                             contentDescription = sosial.nama,
+                            placeholder = painterResource(id = R.drawable.belajar),
+                            error = painterResource(id = R.drawable.bareng),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(if (isFullscreen) 300.dp else 200.dp),
@@ -220,10 +315,16 @@ fun DetailScreen(sosial: Sosial) {
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .padding(8.dp)
-                                .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                                .background(
+                                    Color.Black.copy(alpha = 0.3f),
+                                    CircleShape
+                                )
                         ) {
                             Icon(
-                                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                imageVector = if (isFavorite)
+                                    Icons.Filled.Favorite
+                                else
+                                    Icons.Outlined.FavoriteBorder,
                                 contentDescription = null,
                                 tint = if (isFavorite) Color.Red else Color.White
                             )
@@ -235,7 +336,10 @@ fun DetailScreen(sosial: Sosial) {
                                 modifier = Modifier
                                     .align(Alignment.TopStart)
                                     .padding(8.dp)
-                                    .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                                    .background(
+                                        Color.Black.copy(alpha = 0.3f),
+                                        CircleShape
+                                    )
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -247,22 +351,17 @@ fun DetailScreen(sosial: Sosial) {
                     }
 
                     Column(modifier = Modifier.padding(16.dp)) {
-
                         Text(
                             text = sosial.nama,
                             style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onSurface
+                            fontWeight = FontWeight.Bold
                         )
-
-                        Spacer(modifier = Modifier.height(4.dp))
 
                         Text(
                             text = sosial.deskripsi,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Color.Gray
                         )
-
-                        Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
                             text = "Teman: ${sosial.teman}",
@@ -271,67 +370,74 @@ fun DetailScreen(sosial: Sosial) {
                             fontWeight = FontWeight.Bold
                         )
 
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        if (isFullscreen) {
-                            Button(
-                                onClick = {
-                                    coroutineScope.launch {
-                                        isLoading = true
-                                        delay(2000)
-                                        isLoading = false
-                                        snackbarHostState.showSnackbar(
-                                            message = "Teman ${sosial.nama} berhasil ditambahkan"
-                                        )
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                enabled = !isLoading,
-                            ) {
-                                if (isLoading) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        color = Color.White,
-                                        strokeWidth = 2.dp
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Memproses...")
-                                } else {
-                                    Text("Tambah Teman Sekarang")
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         Button(
                             onClick = {
                                 if (isFullscreen) {
-                                    navController.popBackStack()
+                                    coroutineScope.launch {
+                                        isAddingFriend = true
+                                        delay(2000)
+                                        isAddingFriend = false
+                                        snackbarHostState.showSnackbar(
+                                            "Teman ${sosial.nama} berhasil ditambahkan"
+                                        )
+                                    }
                                 } else {
-                                    navController.navigate(route = "detail/${sosial.nama}")
+                                    navController.navigate("detail/${sosial.nama}")
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
+                            enabled = !isAddingFriend
                         ) {
-                            Text(
-                                text = if (isFullscreen) "Kembali" else "Cari Teman Kelompok",
-                                style = MaterialTheme.typography.labelLarge
-                            )
+                            if (isAddingFriend) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    if (isFullscreen)
+                                        "Tambah Teman Sekarang"
+                                    else
+                                        "Cari Teman Kelompok"
+                                )
+                            }
+                        }
+
+                        if (isFullscreen) {
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            OutlinedButton(
+                                onClick = { navController.popBackStack() },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Kembali")
+                            }
                         }
                     }
                 }
             }
         }
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = if (isFullscreen) 130.dp else 70.dp) 
-        )
+
+        if (isFullscreen) {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 140.dp)
+            )
+        }
+    }
+}
+
+fun getDrawableRes(name: String): Int {
+    return when (name) {
+        "belajar" -> R.drawable.belajar
+        "bareng" -> R.drawable.bareng
+        "kompak" -> R.drawable.kompak
+        "lokasi" -> R.drawable.lokasi
+        else -> R.drawable.belajar
     }
 }
