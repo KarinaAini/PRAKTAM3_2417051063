@@ -1,6 +1,6 @@
-package com.example.praktam3_2417051063.network
+package com.example.praktam3_2417051063.data.api
 
-import model.Sosial
+import com.example.praktam3_2417051063.data.model.Sosial
 import retrofit2.http.GET
 
 interface ApiService {

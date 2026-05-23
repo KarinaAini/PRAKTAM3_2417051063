@@ -25,7 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -34,11 +33,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import com.example.praktam3_2417051063.network.RetrofitClient
 import com.example.praktam3_2417051063.ui.theme.PRAKTAM3_2417051063Theme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import model.Sosial
+import com.example.praktam3_2417051063.data.model.Sosial
+import com.example.praktam3_2417051063.data.repository.SosialRepository
 
 val LocalNavController = compositionLocalOf<NavController> { error("No NavController") }
 val LocalIsFullscreen = compositionLocalOf<Boolean> { false }
@@ -98,31 +97,53 @@ fun SosialScreen(
     sosialList: List<Sosial>,
     onDataLoaded: (List<Sosial>) -> Unit
 ) {
-    var isLoading by remember { mutableStateOf(sosialList.isEmpty()) }
-    var isError by remember { mutableStateOf(false) }
-    var errorDetail by remember { mutableStateOf("") }
-    var retryTrigger by remember { mutableStateOf(0) }
+    val repository = remember { SosialRepository() }
+    var sosials by remember { mutableStateOf<List<Sosial>>(emptyList())
+    }
+    var isLoading by remember { mutableStateOf(true)
+    }
+    var isError by remember { mutableStateOf(false)
+    }
+    var errorDetail by remember { mutableStateOf("")
+    }
+    var retryTrigger by remember { mutableStateOf(0)
+    }
 
     LaunchedEffect(retryTrigger) {
-        if (sosialList.isEmpty() || retryTrigger > 0) {
-            try {
-                val data = RetrofitClient.instance.getSosial()
-                Log.d("API_RESULT", "Data = $data")
-                Log.d("API_SIZE", "Jumlah = ${data.size}")
-                onDataLoaded(data)
-                isLoading = false
-                isError = false
-            } catch (e: Exception) {
-                isLoading = false
-                isError = true
-                errorDetail = e.localizedMessage ?: e.toString()
-                Log.e("API_ERROR", "Detail Error", e)
+        try {
+            isLoading = true
+            isError = false
+            val result = repository.getSosial()
+            sosials = result
+
+            Log.d("API_RESULT", "Data = $result"
+            )
+            Log.d("API_SIZE", "Jumlah = ${result.size}"
+            )
+            onDataLoaded(result)
+            isLoading = false
+            isError = sosials.isEmpty()
+            if (sosials.isEmpty()) {
+                errorDetail = "Data tidak ditemukan"
             }
+        } catch (e: Exception) {
+            isLoading = false
+            isError = true
+            errorDetail =
+                "Gagal memuat data, periksa koneksi internet"
+            Log.e(
+                "API_ERROR",
+                "Detail Error = ${e.message}",
+                e
+            )
         }
     }
 
-    Surface(color = MaterialTheme.colorScheme.background) {
+    Surface(
+        color = MaterialTheme.colorScheme.background
+    ) {
         when {
+
             isLoading -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -139,7 +160,10 @@ fun SosialScreen(
                         .padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+
                         Text(
                             text = "Gagal Memuat Data",
                             style = MaterialTheme.typography.titleLarge,
@@ -159,8 +183,6 @@ fun SosialScreen(
 
                         Button(
                             onClick = {
-                                isLoading = true
-                                isError = false
                                 retryTrigger++
                             }
                         ) {
@@ -171,6 +193,7 @@ fun SosialScreen(
             }
 
             else -> {
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -178,25 +201,31 @@ fun SosialScreen(
                     contentPadding = PaddingValues(bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+
                     item {
+
                         Column(
                             modifier = Modifier.padding(
                                 horizontal = 20.dp,
                                 vertical = 10.dp
                             )
                         ) {
+
                             Text(
-                                "Rekomendasi Teman",
+                                text = "Rekomendasi Teman",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
 
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(
+                                modifier = Modifier.height(12.dp)
+                            )
 
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                items(sosialList) { sosial ->
+
+                                items(sosials) { sosial ->
                                     SosialRowItem(sosial)
                                 }
                             }
@@ -204,8 +233,9 @@ fun SosialScreen(
                     }
 
                     item {
+
                         Text(
-                            "Daftar Teman Lengkap",
+                            text = "Daftar Teman Lengkap",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(
@@ -215,8 +245,13 @@ fun SosialScreen(
                         )
                     }
 
-                    items(sosialList) { sosial ->
-                        Box(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    items(sosials) { sosial ->
+
+                        Box(
+                            modifier = Modifier.padding(
+                                horizontal = 20.dp
+                            )
+                        ) {
                             DetailScreen(sosial)
                         }
                     }
@@ -241,10 +276,8 @@ fun SosialRowItem(sosial: Sosial) {
     ) {
         Column {
             AsyncImage(
-                model = getDrawableRes(sosial.imageName),
+                model = sosial.imageUrl,
                 contentDescription = sosial.nama,
-                placeholder = painterResource(id = R.drawable.belajar),
-                error = painterResource(id = R.drawable.bareng),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(100.dp),
@@ -300,10 +333,8 @@ fun DetailScreen(sosial: Sosial) {
                 Column {
                     Box {
                         AsyncImage(
-                            model = getDrawableRes(sosial.imageName),
+                            model = sosial.imageUrl,
                             contentDescription = sosial.nama,
-                            placeholder = painterResource(id = R.drawable.belajar),
-                            error = painterResource(id = R.drawable.bareng),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(if (isFullscreen) 300.dp else 200.dp),
@@ -429,15 +460,5 @@ fun DetailScreen(sosial: Sosial) {
                     .padding(bottom = 140.dp)
             )
         }
-    }
-}
-
-fun getDrawableRes(name: String): Int {
-    return when (name) {
-        "belajar" -> R.drawable.belajar
-        "bareng" -> R.drawable.bareng
-        "kompak" -> R.drawable.kompak
-        "lokasi" -> R.drawable.lokasi
-        else -> R.drawable.belajar
     }
 }

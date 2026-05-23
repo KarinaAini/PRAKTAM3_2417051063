@@ -1,8 +1,8 @@
-package model
+package com.example.praktam3_2417051063.data.model
 
-import androidx.annotation.DrawableRes
 import com.google.gson.annotations.SerializedName
-data class Sosial (
+
+data class Sosial(
     @SerializedName("nama")
     val nama: String,
 
@@ -12,6 +12,6 @@ data class Sosial (
     @SerializedName("teman")
     val teman: Int,
 
-    @SerializedName("image_name")
-    val imageName: String
+    @SerializedName("image_url")
+    val imageUrl: String
 )
